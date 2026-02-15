@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فانوس - نظام إدارة الدكان الرمضاني</title>
+    <style>
+        :root {
+            --ramadan-gold: #ffd700;
+            --ramadan-blue: #0c2461;
+            --ramadan-red: #b33939;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #051937; 
+            background-image: radial-gradient(circle, #0c2461, #051937);
+            color: #fff;
+            margin: 0; 
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* زينة رمضان */
+        .decoration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 80px;
+            background: url('https://p7.hiclipart.com/preview/447/844/471/ramadan-kareem-eid-al-fitr-wallpaper-ramadan-decoration.jpg') repeat-x;
+            background-size: contain;
+            z-index: 1000;
+            opacity: 0.8;
+        }
+
+        .container { 
+            max-width: 1000px; 
+            margin: 80px auto 20px; 
+            background: rgba(255, 255, 255, 0.95); 
+            padding: 30px; 
+            border-radius: 20px; 
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+            color: #333;
+            position: relative;
+        }
+
+        /* فانوس صغير بجانب العنوان */
+        h1 { 
+            text-align: center; 
+            color: var(--ramadan-blue);
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .form-group { 
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px; 
+            margin-bottom: 30px;
+            background: #f0f2f5;
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px dashed var(--ramadan-gold);
+        }
+
+        input { 
+            padding: 12px; 
+            border: 2px solid #ddd; 
+            border-radius: 8px; 
+            outline: none;
+            transition: 0.3s;
+        }
+
+        input:focus { border-color: var(--ramadan-blue); box-shadow: 0 0 8px rgba(12, 36, 97, 0.2); }
+
+        button { 
+            padding: 12px; 
+            background-color: var(--ramadan-blue); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        button:hover { background-color: #1e3799; transform: translateY(-2px); }
+
+        .stats-box {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            background: var(--ramadan-blue);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; border-radius: 10px; overflow: hidden; }
+        th, td { padding: 15px; text-align: center; border-bottom: 1px solid #eee; }
+        th { background-color: var(--ramadan-blue); color: var(--ramadan-gold); }
+        
+        tr:hover { background-color: #f9f9f9; }
+
+        .profit { color: #27ae60; font-weight: bold; }
+        .delete-btn { background-color: var(--ramadan-red); color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; }
+
+        /* إضافة لمسة الهلال */
+        .moon { position: absolute; top: -50px; left: -30px; font-size: 60px; filter: drop-shadow(0 0 10px gold); }
+    </style>
+</head>
+<body>
+
+<div class="decoration"></div>
+
+<div class="container">
+    <div class="moon">🌙</div>
+    <h1>✨ دكان رمضان الذكي ✨</h1>
+    
+    <div class="stats-box">
+        <div>إجمالي عدد الأصناف: <span id="totalItems">0</span></div>
+        <div>إجمالي الربح المتوقع: <span id="totalAllProfit" style="color: var(--ramadan-gold);">0</span> ج.م</div>
+    </div>
+
+    <div class="form-group">
+        <input type="text" id="pName" placeholder="اسم المنتج (مثلاً: تمر، قمر الدين)">
+        <input type="number" id="pBuyPrice" placeholder="سعر الشراء (جملة)">
+        <input type="number" id="pSellPrice" placeholder="سعر البيع">
+        <input type="number" id="pQty" placeholder="الكمية">
+        <button onclick="addProduct()">إضافة للمخزن 🌙</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>المنتج</th>
+                <th>الشراء</th>
+                <th>البيع</th>
+                <th>الكمية</th>
+                <th>ربح القطعة</th>
+                <th>الربح الكلي</th>
+                <th>إجراء</th>
+            </tr>
+        </thead>
+        <tbody id="productTable"></tbody>
+    </table>
+</div>
+
+<script>
+    let totalProfitSum = 0;
+    let itemsCount = 0;
+
+    function addProduct() {
+        const name = document.getElementById('pName').value;
+        const buy = parseFloat(document.getElementById('pBuyPrice').value);
+        const sell = parseFloat(document.getElementById('pSellPrice').value);
+        const qty = parseInt(document.getElementById('pQty').value);
+
+        if(name && buy && sell && qty) {
+            const profitPerPiece = sell - buy;
+            const totalProfit = profitPerPiece * qty;
+
+            const table = document.getElementById('productTable');
+            const row = document.createElement('tr');
+            
+            row.innerHTML = `
+                <td><b>${name}</b></td>
+                <td>${buy} ج.م</td>
+                <td>${sell} ج.م</td>
+                <td>${qty}</td>
+                <td class="profit">${profitPerPiece} ج.م</td>
+                <td class="profit">${totalProfit} ج.م</td>
+                <td><button class="delete-btn" onclick="removeProduct(this, ${totalProfit})">حذف</button></td>
+            `;
+            
+            table.appendChild(row);
+            
+            // تحديث الإحصائيات
+            totalProfitSum += totalProfit;
+            itemsCount++;
+            updateStats();
+
+            // مسح الخانات
+            document.querySelectorAll('.form-group input').forEach(input => input.value = '');
+        } else {
+            alert("يا بطل، املأ كل البيانات عشان الرزق يحب الخفية!");
+        }
+    }
+
+    function removeProduct(btn, profit) {
+        btn.parentElement.parentElement.remove();
+        totalProfitSum -= profit;
+        itemsCount--;
+        updateStats();
+    }
+
+    function updateStats() {
+        document.getElementById('totalAllProfit').innerText = totalProfitSum.toLocaleString();
+        document.getElementById('totalItems').innerText = itemsCount;
+    }
+</script>
+
+</body>
+</html>
